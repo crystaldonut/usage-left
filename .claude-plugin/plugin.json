@@ -1,0 +1,11 @@
+{
+  "name": "usage-left",
+  "version": "0.5.0",
+  "description": "Usage bars under the prompt for the current model's 5-hour limit and the weekly Fable limit, with reset times, plus a line for the git worktree: product tags, ticket and pull request.",
+  "author": { "name": "crystaldonut", "url": "https://github.com/crystaldonut" },
+  "homepage": "https://github.com/crystaldonut/usage-left",
+  "repository": "https://github.com/crystaldonut/usage-left",
+  "license": "MIT",
+  "keywords": ["usage", "rate-limits", "status", "worktree", "mod"],
+  "types": "./types/index.d.ts"
+}

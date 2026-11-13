@@ -1,0 +1,16 @@
+{
+  "name": "usage-left",
+  "owner": {
+    "name": "crystaldonut"
+  },
+  "metadata": {
+    "description": "The usage-left mod for Claude Code: usage bars and a git worktree line under the prompt."
+  },
+  "plugins": [
+    {
+      "name": "usage-left",
+      "source": "./",
+      "description": "Usage bars under the prompt, plus a git worktree line with product tags, ticket and pull request."
+    }
+  ]
+}

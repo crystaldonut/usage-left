@@ -1,0 +1,24 @@
+{
+  "repos": {
+    "my-org/my-monorepo": {
+      "fallback": { "name": "monorepo", "color": "#94a3b8" },
+      "areas": [
+        { "name": "iOS",     "color": "#a855f7", "paths": ["apps/ios/"],                  "branchWords": ["ios", "mobile"] },
+        { "name": "Web",     "color": "#3b82f6", "paths": ["apps/web/", "packages/ui/"],  "branchWords": ["web", "frontend"] },
+        { "name": "API",     "color": "#f97316", "paths": ["services/api/"],              "branchWords": ["api", "backend"] },
+        { "name": "Infra",   "color": "#14b8a6", "paths": ["terraform/", ".github/"],     "branchWords": ["infra", "ci"] }
+      ],
+      "ticket": { "pattern": "PROJ-\\d+", "url": "https://my-org.atlassian.net/browse/{ticket}" }
+    },
+
+    "docs-site": {
+      "fallback": { "name": "docs", "color": "#eab308" },
+      "areas": [],
+      "ticket": { "pattern": "DOC-\\d+", "url": "https://linear.app/my-org/issue/{ticket}" }
+    },
+
+    "*": {
+      "areas": []
+    }
+  }
+}
