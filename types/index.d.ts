@@ -19,8 +19,6 @@ declare module 'claude-code' {
       model: string
       effort: string
       worktree: Worktree | null
-      fable: Limit | null
-      now: number
     }
   }
 }

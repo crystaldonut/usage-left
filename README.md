@@ -1,13 +1,13 @@
 # usage-left
 
-A Claude Code mod that shows, under the text box, how much of your usage limits
-is left and when they reset, plus which git worktree the session is in.
+A Claude Code mod that shows, under the text box, how much of your 5-hour session
+limit is left and when it resets, plus which git worktree the session is in.
 
 Example (the repository, ticket and PR number are made up):
 
 ```
 ⎇ PROJ-1234-example (fix/PROJ-1234-example)  iOS  Web    PROJ-1234    PR #1234 open
-Opus 5.5 (high): ███░░░░░░░░░░░░░░░░░ 86% left · Resets 1:50 PM   |   Fable (Usage): ░░░░░░░░░░░░░░░░░░░░ 100% left · Resets in 4d 10h
+Opus 5.5 (high): ███░░░░░░░░░░░░░░░░░ 86% left · Resets 1:50 PM
 ```
 
 ## Install
@@ -49,7 +49,6 @@ Needs Claude Code 2.1.275 or later.
 | Part | Meaning |
 | --- | --- |
 | `Opus 5.5 (high)` | The session's current model and effort level. Its bar is the 5-hour session limit, with the clock time it resets. |
-| `Fable (Usage)` | The weekly Fable limit, with a countdown to its reset. |
 
 Bar colors: green while under 70% used, yellow from 70%, red from 90%.
 
@@ -108,22 +107,15 @@ with no reload. A missing file or invalid JSON leaves just the repo-name tag.
 | Figure | Source | How often |
 | --- | --- | --- |
 | 5-hour limit | The rate-limit figures Claude Code gives mods after each reply (`five_hour`). | After each reply |
-| Fable weekly limit | `GET https://api.anthropic.com/api/oauth/usage`, the same endpoint `/usage` reads: the `limits` entry with `kind: weekly_scoped` and model `Fable`. | After each reply and every minute, at most once a minute |
 | Model and effort | The session's model requests. | Each request |
 | Worktree, tags, ticket | `git` in the session's folder. | Session start, after each reply, when entering or leaving a worktree |
 | Pull request | `gh pr list --head <branch>`. | At most every 2 minutes |
-
-The Anthropic endpoint is called with the session's own login through
-Claude Code; the mod never sees the login itself. It is not documented for
-mods, so a Claude Code or API change can break it. If it fails, the bar keeps
-its last reading.
 
 ## What the mod reaches
 
 Everything the mod does outside drawing its two lines:
 
 - Runs `git` (read-only commands) and `gh pr list` in the session's folder.
-- Calls `https://api.anthropic.com/api/oauth/usage` with the session's login.
 - Reads `areas.json` and the `HOME` and `CLAUDE_CONFIG_DIR` environment variables.
 
 It sends nothing anywhere else and writes no files.
@@ -132,8 +124,6 @@ It sends nothing anywhere else and writes no files.
 
 - Nothing can be placed above the `auto mode on` label: Claude Code draws it
   outside the line the mod can change.
-- The Fable bar needs a Claude subscription login; with an API key or another
-  provider it shows `no reading yet`.
 - The PR link needs `gh` installed and logged in to an account that can see the
   repository.
 - Product tags compare against `origin/main`; a repository whose main branch

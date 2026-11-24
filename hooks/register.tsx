@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, Timer } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
 import type { Area, Limit, Pr, Worktree } from '../types'
 
@@ -7,12 +7,8 @@ const limitsAtom = atom({ plugin: 'usage-left', key: 'limits' } as const, [] as 
 const modelAtom = atom({ plugin: 'usage-left', key: 'model' } as const, '')
 const effortAtom = atom({ plugin: 'usage-left', key: 'effort' } as const, '')
 const worktreeAtom = atom({ plugin: 'usage-left', key: 'worktree' } as const, null as Worktree | null)
-const fableAtom = atom({ plugin: 'usage-left', key: 'fable' } as const, null as Limit | null)
-const nowAtom = atom({ plugin: 'usage-left', key: 'now' } as const, 0)
 
 const BAR = 20
-// The weekly limit covers the Fable line as a whole, not one model version.
-const FABLE_LABEL = 'Fable (Usage)'
 const LEVELS = {
   normal: { fg: '#22c55e', bg: '#14532d' },
   caution: { fg: '#eab308', bg: '#713f12' },
@@ -31,15 +27,6 @@ function clockTime(iso: string | undefined): string {
   const h = d.getHours()
   const m = String(d.getMinutes()).padStart(2, '0')
   return `Resets ${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`
-}
-
-function countdown(iso: string | undefined, now: number): string {
-  if (!iso) return ''
-  const mins = Math.max(0, Math.round((Date.parse(iso) - now) / 60000))
-  const d = Math.floor(mins / 1440)
-  const h = Math.floor((mins % 1440) / 60)
-  const m = mins % 60
-  return `Resets in ${d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`}`
 }
 
 function shortModel(model: string): string {
@@ -196,69 +183,22 @@ async function findWorktree($: EngineInterface): Promise<Worktree | null> {
   }
 }
 
-type AccountLimit = {
-  kind?: string
-  percent?: number
-  resets_at?: string
-  scope?: { model?: { display_name?: string | null } | null } | null
-}
-
-let lastFableFetch = 0
-
-// The weekly Fable limit, read from the account usage endpoint that /usage
-// shows; the per-reply rate-limit figures the engine hands mods do not carry it.
-async function refreshFable($: EngineInterface): Promise<void> {
-  const now = Date.now()
-  if (now - lastFableFetch < 60_000) return
-  lastFableFetch = now
-  try {
-    const authz = await $.session.authorize()
-    if (!authz) return
-    const r = await $.http.fetch('https://api.anthropic.com/api/oauth/usage', {
-      auth: authz.handle,
-      headers: { 'anthropic-beta': 'oauth-2025-04-20' },
-    })
-    if (!r.ok) return
-    const body = JSON.parse(r.text) as { limits?: AccountLimit[] }
-    const hit = (body.limits ?? []).find(
-      l => l.kind === 'weekly_scoped' && /fable/i.test(l.scope?.model?.display_name ?? ''),
-    )
-    const fable: Limit | null = hit
-      ? { kind: 'fable_weekly', percentUsed: hit.percent ?? 0, resetsAt: hit.resets_at }
-      : null
-    await update($, fableAtom, () => fable)
-  } catch {
-    // keep the last reading
-  }
-}
-
 export const register: Register = on => {
-  let timer: Timer | undefined
-
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     $.ui.status(undefined)
     const usage = await $.session.usage()
     await update($, limitsAtom, () => usage.rateLimits)
     await update($, modelAtom, () => '')
-    await update($, nowAtom, () => Date.now())
     const wt = await findWorktree($)
     await update($, worktreeAtom, () => wt)
-    await refreshFable($)
-    timer?.cancel()
-    timer = await $.clock.every(60_000, () => {
-      void update($, nowAtom, () => Date.now())
-      void refreshFable($)
-    })
     return result
   })
 
   on('session.measure', async ($, e, next) => {
     await update($, limitsAtom, () => e.rateLimits)
-    await refreshFable($)
     const wt = await findWorktree($)
     await update($, worktreeAtom, () => wt)
-    await update($, nowAtom, () => Date.now())
     const model = await $.session.model()
     await update($, modelAtom, () => model)
     return next(e)
@@ -283,7 +223,6 @@ export const register: Register = on => {
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
     const engineLine = await next(e)
     const limits = await read($, limitsAtom)
-    const now = (await read($, nowAtom)) || Date.now()
     let model = await read($, modelAtom)
     if (!model) model = await $.session.model()
     const effort = await read($, effortAtom)
@@ -301,7 +240,6 @@ export const register: Register = on => {
     const { Box, Link, Text } = $.ui.resolve(e)
 
     const session = limits.find(l => l.kind === 'five_hour')
-    const fable = await read($, fableAtom)
 
     const bar = (key: string, label: string, l: Limit | undefined, reset: string) => {
       if (!l) {
@@ -351,8 +289,6 @@ export const register: Register = on => {
         ) : null}
         <Box>
           {bar('model', modelLabel, session, clockTime(session?.resetsAt))}
-          <Text>{'   |   '}</Text>
-          {bar('fable', FABLE_LABEL, fable ?? undefined, countdown(fable?.resetsAt, now))}
         </Box>
         {engineLine}
       </Box>
